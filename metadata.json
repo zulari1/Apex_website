@@ -1,0 +1,7 @@
+{
+  "name": "Apex Revenue",
+  "description": "High-converting B2B SaaS landing page for Apex Revenue - The Autonomous Revenue Infrastructure.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
