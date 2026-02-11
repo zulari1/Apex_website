@@ -1,11 +1,9 @@
-
 import React, { useEffect } from 'react';
 import { useSystemStore } from './store/useSystemStore';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Problem } from './components/Problem';
 import { Solution } from './components/Solution';
-import { Capabilities } from './components/Capabilities';
 import { ROICalculator } from './components/ROICalculator';
 import { Testimonials } from './components/Testimonials';
 import { ComparisonTable } from './components/ComparisonTable';
@@ -19,7 +17,6 @@ import { LiveDemo } from './components/LiveDemo';
 const App: React.FC = () => {
   const { setSystemState } = useSystemStore();
 
-  // Initial System Boot
   useEffect(() => {
     const timer = setTimeout(() => {
         setSystemState('idle');
@@ -36,12 +33,11 @@ const App: React.FC = () => {
 
       <main className="relative z-10 w-full">
         <Hero />
-        {/* Live Product Experience - Placed early for maximum engagement */}
         <LiveDemo />
         <div className="relative z-30 bg-dark-900">
             <Problem />
             <Solution />
-            <Capabilities />
+            {/* Capabilities removed as it's merged into Solution */}
             <ROICalculator />
             <Testimonials />
             <ComparisonTable />

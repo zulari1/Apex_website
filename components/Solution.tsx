@@ -1,14 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Database, Search, Send, Inbox, CalendarCheck } from 'lucide-react';
-
-const steps = [
-  { icon: Database, label: "Lead Scraping", desc: "50+ Data Sources" },
-  { icon: Search, label: "AI Research", desc: "Deep Entity Profiling" },
-  { icon: Send, label: "Outreach", desc: "Hyper-Personalized" },
-  { icon: Inbox, label: "Inbox AI", desc: "Automated Triage" },
-  { icon: CalendarCheck, label: "Setter", desc: "Meeting Booked" },
-];
+import { SOLUTION_STEPS } from '../constants';
+import { CheckCircle2 } from 'lucide-react';
 
 export const Solution: React.FC = () => {
   return (
@@ -16,46 +9,71 @@ export const Solution: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-20">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            The Complete AI Revenue Operating System
+            Revenue OS Runs Your Entire Sales Pipeline—From Cold Lead to Booked Meeting
           </h2>
-          <p className="text-gray-400 text-lg">5 AI Systems Working Together = Your Entire Sales Process, Automated</p>
+          <p className="text-gray-400 text-lg max-w-3xl mx-auto">
+            Each agent handles one part of the sales process—so you never touch a spreadsheet, write a cold email, or chase a lead again.
+          </p>
         </div>
 
-        {/* Animated Flow Diagram */}
-        <div className="relative">
-          {/* Connection Line Background */}
-          <div className="hidden md:block absolute top-1/2 left-0 w-full h-1 bg-white/10 -translate-y-1/2 rounded-full overflow-hidden">
-             <motion.div 
-               className="w-full h-full bg-gradient-to-r from-transparent via-primary to-transparent"
-               animate={{ x: ['-100%', '100%'] }}
-               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-             />
-          </div>
+        <div className="relative space-y-32">
+          {/* Connecting Line */}
+          <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-1 bg-white/5 -translate-x-1/2 hidden md:block" />
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8 relative z-10">
-            {steps.map((step, index) => (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="flex flex-col items-center text-center group"
-              >
-                <div className="w-20 h-20 bg-dark-800 border-2 border-white/10 rounded-2xl flex items-center justify-center mb-6 relative transition-all duration-300 group-hover:border-primary group-hover:shadow-[0_0_30px_rgba(0,217,255,0.2)]">
-                  <step.icon size={32} className="text-gray-400 group-hover:text-primary transition-colors" />
-                  
-                  {/* Pulse Dot */}
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-dark-900 rounded-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping"></div>
-                  </div>
+          {SOLUTION_STEPS.map((step, index) => (
+            <motion.div 
+              key={index}
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.6 }}
+              className={`relative flex flex-col md:flex-row gap-12 items-center ${
+                index % 2 === 1 ? 'md:flex-row-reverse' : ''
+              }`}
+            >
+              {/* Content Side */}
+              <div className="flex-1 w-full">
+                <div className={`flex flex-col ${index % 2 === 1 ? 'md:items-start' : 'md:items-end'} text-center ${index % 2 === 1 ? 'md:text-left' : 'md:text-right'}`}>
+                   <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-xl mb-6">
+                      <step.icon size={32} className="text-primary" />
+                   </div>
+                   <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">{step.headline}</h3>
+                   <p className="text-gray-400 text-lg leading-relaxed mb-6">
+                     {step.description}
+                   </p>
+                   <ul className={`space-y-3 ${index % 2 === 1 ? 'items-start' : 'items-end'} flex flex-col`}>
+                     {step.stats.map((stat, i) => (
+                       <li key={i} className="flex items-center gap-3 text-white font-medium">
+                         {index % 2 === 1 && <CheckCircle2 size={18} className="text-success" />}
+                         {stat}
+                         {index % 2 === 0 && <CheckCircle2 size={18} className="text-success" />}
+                       </li>
+                     ))}
+                   </ul>
                 </div>
-                
-                <h3 className="text-white font-bold text-lg mb-2">{step.label}</h3>
-                <p className="text-sm text-gray-500">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
+              </div>
+
+              {/* Center Node */}
+              <div className="absolute left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-dark-900 border-4 border-primary z-10 hidden md:block"></div>
+
+              {/* Visual Side (Placeholder for screenshot) */}
+              <div className="flex-1 w-full">
+                <div className="bg-dark-800 border border-white/10 rounded-2xl p-8 h-64 md:h-80 flex items-center justify-center relative overflow-hidden group hover:border-primary/30 transition-all shadow-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <step.icon size={64} className="text-white/10 group-hover:text-primary/20 transition-all duration-500 transform group-hover:scale-110" />
+                    <div className="absolute bottom-4 right-4 bg-dark-900/80 backdrop-blur px-3 py-1 rounded text-xs text-primary font-mono border border-primary/20">
+                        {step.title}
+                    </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-24 text-center">
+            <p className="text-xl md:text-2xl font-light text-white">
+                From cold lead to calendar invite—<span className="text-primary font-bold">Revenue OS does it all</span> while you focus on closing deals.
+            </p>
         </div>
       </div>
     </section>

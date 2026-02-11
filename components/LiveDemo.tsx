@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSystemStore } from '../store/useSystemStore';
-import { Search, Mail, Loader2, ArrowRight, Check, Copy, Sparkles, Lock, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, Mail, ArrowRight, Check, Copy, Sparkles, Lock, RefreshCw, AlertCircle } from 'lucide-react';
 
 type DemoPhase = 
   | 'idle' 
@@ -83,8 +82,6 @@ export const LiveDemo: React.FC = () => {
 
   const handleResearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Safety check: ensure we have both inputs
     if (!url.trim()) {
         setPhase('idle');
         return;
@@ -94,20 +91,12 @@ export const LiveDemo: React.FC = () => {
     setPhase('processing_research');
     setError(null);
 
-    const payload = {
-        linkedin_or_company: url,
-        user_email: email
-    };
-
-    console.log('[LiveDemo] Sending Research Request:', payload);
-
+    const payload = { linkedin_or_company: url, user_email: email };
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
       let response;
-      
-      // ATTEMPT 1: Standard JSON (Matches Atlas Protocol)
       try {
           response = await fetch('https://apex-dev.app.n8n.cloud/webhook/services_demo', {
             method: 'POST',
@@ -116,12 +105,7 @@ export const LiveDemo: React.FC = () => {
             signal: controller.signal
           });
       } catch (networkErr: any) {
-          // If this is an AbortError (Timeout), throw it up to the main catch
           if (networkErr.name === 'AbortError') throw networkErr;
-          
-          // ATTEMPT 2: Fallback to text/plain to bypass CORS Preflight (OPTIONS)
-          // This fixes "Failed to fetch" if the server doesn't handle OPTIONS correctly
-          console.warn('[LiveDemo] Standard JSON failed (CORS/Network), retrying with Simple Request...', networkErr);
           response = await fetch('https://apex-dev.app.n8n.cloud/webhook/services_demo', {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
@@ -133,45 +117,30 @@ export const LiveDemo: React.FC = () => {
       clearTimeout(timeoutId);
 
       if (!response || !response.ok) {
-          const errText = response ? await response.text().catch(() => 'No error text') : 'Network Error';
-          console.error('[LiveDemo] Webhook Error:', response?.status, errText);
           throw new Error(`Research generation failed: ${response?.status || 'Unknown'}`);
       }
 
       const data: ResearchResponse[] = await response.json();
       
-      // Validate Response Structure
       if (Array.isArray(data) && data.length > 0 && data[0].research_report) {
-        console.log('[LiveDemo] Research Data Received.');
         setResearchData(data[0]);
         setPhase('show_report');
       } else {
-        console.error('[LiveDemo] Invalid Data Format:', data);
         throw new Error('Invalid response format received from AI agent.');
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error('[LiveDemo] Exception:', err);
-      
-      let errorMessage = 'Failed to generate research. Please try again.';
-      if (err.name === 'AbortError') {
-          errorMessage = 'Request timed out. The analysis is taking longer than expected.';
-      } else if (err.message && err.message.includes('Failed to fetch')) {
-          errorMessage = 'Network error. Please check your connection or ad-blockers.';
-      }
-
-      setError(errorMessage);
+      setError('Failed to generate research. Please try again.');
       setPhase('email_input');
     }
   };
 
   const handleGenerateEmails = async () => {
     if (!researchData?.research_report) {
-        console.error('[LiveDemo] Missing research data');
         setError('Configuration error: Missing research data.');
         return;
     }
-    
     setPhase('processing_emails');
     setError(null);
 
@@ -180,10 +149,7 @@ export const LiveDemo: React.FC = () => {
 
     try {
       const targetUrl = 'https://apex-dev.app.n8n.cloud/webhook/email_designer';
-      console.log('[LiveDemo] Triggering Email Generation via:', targetUrl);
-      
       let response;
-      // Construct payload with report, email, and url
       const emailPayload = {
           email: email,
           linkedin_or_company: url, 
@@ -191,7 +157,6 @@ export const LiveDemo: React.FC = () => {
           trigger: 'generate_emails' 
       };
 
-      // Same Robust Dual-Fetch Strategy
       try {
           response = await fetch(targetUrl, {
             method: 'POST',
@@ -201,8 +166,6 @@ export const LiveDemo: React.FC = () => {
           });
       } catch (networkErr: any) {
            if (networkErr.name === 'AbortError') throw networkErr;
-           
-           console.warn('[LiveDemo] Email gen fallback to simple request...', networkErr);
            response = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
@@ -220,11 +183,7 @@ export const LiveDemo: React.FC = () => {
       const data: EmailsResponse[] = await response.json();
       if (Array.isArray(data) && data.length > 0) {
         const emailsObj = data[0];
-        setGeneratedEmails([
-          emailsObj.email1,
-          emailsObj.email2,
-          emailsObj.email3
-        ]);
+        setGeneratedEmails([emailsObj.email1, emailsObj.email2, emailsObj.email3]);
         setPhase('show_emails');
       } else {
         throw new Error('Invalid email format received');
@@ -239,26 +198,20 @@ export const LiveDemo: React.FC = () => {
 
   const handleFinalCTA = () => {
     handleInteraction('live_demo_cta_clicked', { email, url });
-    // Scroll to pricing or open booking
     const pricingSection = document.getElementById('pricing');
     if (pricingSection) pricingSection.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Helper to safely render the HTML report
   const processHtml = (html: string) => {
-    // Scope the CSS to avoid breaking the main app
-    // Replace 'body' selector with our container class
     return html
       .replace(/body\s*{/g, '.research-scope {')
       .replace(/body\s/g, '.research-scope ')
-      // Ensure specific elements don't overflow
       .replace(/table\s*{/g, 'table { width: 100%; display: block; overflow-x: auto; ')
       .replace(/<img/g, '<img style="max-width: 100%; height: auto;"');
   };
 
   return (
     <section className="py-24 relative bg-dark-900 overflow-hidden border-t border-white/5">
-      {/* Background Ambience */}
       <div className="absolute inset-0 bg-primary/5 blur-[100px] pointer-events-none" />
       
       <div className="max-w-4xl mx-auto px-4 relative z-10">
@@ -267,13 +220,13 @@ export const LiveDemo: React.FC = () => {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6 border border-primary/20">
             <Sparkles size={12} />
-            Live Product Experience
+            🔬 LIVE DEMO: See Your Personalized AI Email
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Try Revenue OS On Yourself
+            See What Our AI Would Write to You
           </h2>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            In 30 seconds, see the exact outreach our system would send if you were the lead.
+             Drop your LinkedIn or company URL. In 30 seconds, see the exact research, email subject line, and personalized opener Revenue OS would send. No signup required.
           </p>
         </div>
 
@@ -292,10 +245,6 @@ export const LiveDemo: React.FC = () => {
               >
                 {phase === 'idle' ? (
                   <form onSubmit={handleUrlSubmit} className="w-full max-w-lg space-y-6">
-                    <div className="space-y-2 text-center mb-8">
-                       <h3 className="text-2xl font-bold text-white">Where should we start?</h3>
-                       <p className="text-gray-400 text-sm">Paste your LinkedIn profile or company website.</p>
-                    </div>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                         <Search className="text-gray-500 group-focus-within:text-primary transition-colors" size={20} />
@@ -305,23 +254,26 @@ export const LiveDemo: React.FC = () => {
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
                         placeholder="linkedin.com/in/you or company.com"
-                        className="w-full bg-dark-900 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-lg"
+                        className="w-full bg-[#1E3A5F] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-gray-400 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-lg"
                         autoFocus
                       />
                     </div>
                     <button 
                       type="submit"
                       disabled={!url}
-                      className="w-full bg-white text-dark-900 font-bold py-4 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-primary text-dark-900 font-bold py-4 rounded-xl hover:scale-105 transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(0,217,255,0.4)]"
                     >
-                      Next Step <ArrowRight size={20} />
+                      Generate My Email <ArrowRight size={20} />
                     </button>
+                    
+                    <div className="pt-6 text-center">
+                         <p className="text-sm text-gray-500">✓ 2,847 sales leaders tested this • Avg. rating: 9.2/10</p>
+                    </div>
                   </form>
                 ) : (
                   <form onSubmit={handleResearchSubmit} className="w-full max-w-lg space-y-6">
                     <div className="space-y-2 text-center mb-8">
-                       <h3 className="text-2xl font-bold text-white">Where should we send the report?</h3>
-                       <p className="text-gray-400 text-sm">We'll analyze {url} and email you the findings.</p>
+                       <h3 className="text-2xl font-bold text-white">Where should we send the results?</h3>
                     </div>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -332,16 +284,16 @@ export const LiveDemo: React.FC = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="name@company.com"
-                        className="w-full bg-dark-900 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-lg"
+                        className="w-full bg-[#1E3A5F] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder:text-gray-400 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-lg"
                         autoFocus
                       />
                     </div>
                     <button 
                       type="submit"
                       disabled={!email}
-                      className="w-full bg-primary text-dark-900 font-bold py-4 rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-50 shadow-[0_0_20px_rgba(0,217,255,0.3)]"
+                      className="w-full bg-primary text-dark-900 font-bold py-4 rounded-xl hover:scale-105 transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-50 shadow-[0_0_20px_rgba(0,217,255,0.4)]"
                     >
-                      Generate My Research <Sparkles size={20} />
+                      Analyze Profile & Write Email <Sparkles size={20} />
                     </button>
                     <button 
                       type="button" 
@@ -401,7 +353,7 @@ export const LiveDemo: React.FC = () => {
                 key="report"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col h-[800px]" // Fixed height for scroll
+                className="flex flex-col h-[800px]"
               >
                 <div className="bg-dark-900 border-b border-white/10 p-4 flex justify-between items-center shrink-0">
                   <div className="flex items-center gap-2">
@@ -417,21 +369,20 @@ export const LiveDemo: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-white text-black font-sans research-scope custom-html-render">
-                   {/* DANGEROUS HTML RENDER */}
                    <div dangerouslySetInnerHTML={{ __html: processHtml(researchData.research_report) }} />
                 </div>
 
                 <div className="bg-dark-900 border-t border-white/10 p-6 md:p-8 shrink-0">
                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                       <div className="text-center md:text-left">
-                        <h4 className="text-white font-bold text-lg mb-1">This is how Revenue OS sees your business.</h4>
+                        <h4 className="text-white font-bold text-lg mb-1">This is how Revenue OS sees you.</h4>
                         <p className="text-gray-400 text-sm">Now, let's see how it uses this data to write perfect outbound.</p>
                       </div>
                       <button 
                         onClick={handleGenerateEmails}
                         className="bg-primary text-dark-900 font-bold py-3 px-8 rounded-xl hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_20px_rgba(0,217,255,0.4)] whitespace-nowrap"
                       >
-                        Turn This Into Outreach Emails <ArrowRight size={20} />
+                        Write My Email <ArrowRight size={20} />
                       </button>
                    </div>
                    {error && <p className="text-red-400 text-xs mt-2 text-center">{error}</p>}
@@ -450,8 +401,8 @@ export const LiveDemo: React.FC = () => {
                 className="flex flex-col h-full min-h-[600px] p-8"
               >
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-white mb-2">Ready to Launch</h3>
-                  <p className="text-gray-400 text-sm">These are the exact emails Revenue OS would send on your behalf.</p>
+                  <h3 className="text-2xl font-bold text-white mb-2">Generated by Revenue OS</h3>
+                  <p className="text-gray-400 text-sm">This is the exact quality you can expect at scale.</p>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6 mb-8 overflow-y-auto max-h-[600px] scrollbar-thin scrollbar-thumb-white/10 pr-2">
@@ -499,7 +450,6 @@ export const LiveDemo: React.FC = () => {
           </AnimatePresence>
         </div>
       </div>
-
       <style>{`
         .research-scope h1, .research-scope h2, .research-scope h3 { color: #111 !important; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold; }
         .research-scope p { margin-bottom: 1em; line-height: 1.6; color: #333; }

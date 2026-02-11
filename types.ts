@@ -6,24 +6,29 @@ export interface PricingTier {
   period: string;
   description: string;
   features: string[];
+  notIncluded?: string[]; // New field for excluded features
   cta: string;
   highlight?: boolean;
+  badge?: string;
+  header?: string; // For scarcity text
 }
 
 export interface Testimonial {
-  quote: string;
+  before: string;
+  after: string;
   name: string;
   role: string;
   company: string;
-  metric: string;
+  result: string;
 }
 
-export interface FeatureTab {
+export interface FeatureCard {
   id: string;
   title: string;
   icon: LucideIcon;
+  headline: string;
   description: string;
-  checklist: string[];
+  stats: string[];
 }
 
 export interface FAQItem {
@@ -34,4 +39,5 @@ export interface FAQItem {
 export interface StatItem {
   value: string;
   label: string;
+  icon?: LucideIcon;
 }

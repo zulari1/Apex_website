@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { AgentService } from '../services/agentService';
 
@@ -104,6 +103,12 @@ const mapStageToEmotion = (stage: AtlasStage): OrbEmotion => {
     }
 };
 
+const DEFAULT_ATLAS_DATA: AtlasData = {
+    recommended_tier: null,
+    booking_link: null,
+    dashboard_url: null
+};
+
 export const useSystemStore = create<SystemStore>((set, get) => ({
   sessionId: '',
   startTime: Date.now(),
@@ -118,11 +123,7 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
   atlasState: {
     stage: 'intro',
     ui_action: 'none',
-    data: {
-      recommended_tier: null,
-      booking_link: null,
-      dashboard_url: null
-    },
+    data: DEFAULT_ATLAS_DATA,
     last_spoken: null
   },
   
@@ -222,12 +223,19 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
         // 5. UPDATE STATE FROM INTELLIGENCE
         const emotion = mapStageToEmotion(response.stage as AtlasStage);
         
+        // SAFE DATA ASSIGNMENT (Fixes "undefined" error)
+        const safeData: AtlasData = {
+            recommended_tier: response.data?.recommended_tier || null,
+            booking_link: response.data?.booking_link || null,
+            dashboard_url: response.data?.dashboard_url || null
+        };
+
         // Message First, UI Second is handled by components reading this state
         set({ 
           atlasState: {
             stage: response.stage as AtlasStage,
             ui_action: response.ui_action as AtlasUIAction,
-            data: response.data,
+            data: safeData,
             last_spoken: response.spoken_response || null
           },
           orbEmotion: emotion,
