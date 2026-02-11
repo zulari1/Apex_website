@@ -1,8 +1,9 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useSystemStore, OrbEmotion, SystemState, ChatMessage } from '../store/useSystemStore';
-import { ArrowRight, Mic, MicOff, History, Loader2, X, Calendar, ShieldCheck, ExternalLink, Terminal, RefreshCw, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { ArrowRight, Mic, MicOff, History, Loader2, X, Calendar, ShieldCheck, ExternalLink, Terminal, RefreshCw, AlertTriangle, Sparkles, BrainCircuit } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AssemblyAIClient } from '../services/assemblyService';
 
 // --- VISUAL CONSTANTS ---
 const ORB_COLORS = {
@@ -33,7 +34,7 @@ interface RealisticOrbProps {
 
 const RealisticOrb: React.FC<RealisticOrbProps> = ({ state, emotion, onClick }) => {
   const isSpeaking = state === 'speaking';
-  const isProcessing = state === 'processing';
+  const isProcessing = state === 'processing' || state === 'thinking';
   const isListening = state === 'listening';
   const isFallback = state === 'fallback';
   
@@ -58,39 +59,43 @@ const RealisticOrb: React.FC<RealisticOrbProps> = ({ state, emotion, onClick }) 
             backgroundColor: palette.glow,
         }}
         transition={{ 
-            duration: isProcessing ? 2 : 4, 
+            duration: isProcessing ? 1.5 : 4, 
             repeat: Infinity, 
-            repeatType: "mirror", // Organic breathing
+            repeatType: "mirror", 
             ease: "easeInOut" 
         }}
         className="absolute inset-0 rounded-full blur-[40px] transition-colors duration-500"
       />
 
       {/* 2. GYROSCOPIC RINGS (Thinking State Only) */}
-      {/* 3D Perspective Container */}
-      <div className="absolute inset-[-30px] z-0 pointer-events-none" style={{ perspective: '600px' }}>
+      <div className="absolute inset-[-40px] z-0 pointer-events-none" style={{ perspective: '800px' }}>
           <AnimatePresence>
             {isProcessing && (
-              <>
-                {/* Ring 1 (X-Axis Spin) */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="w-full h-full relative"
+              >
                 <motion.div
-                  initial={{ opacity: 0, rotateX: 70, rotateZ: 0, scale: 0.8 }}
-                  animate={{ opacity: 0.8, rotateX: 70, rotateZ: 360, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.3 } }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  animate={{ rotateX: [0, 360], rotateZ: [0, 180] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                   className="absolute inset-0 rounded-full border-[1px] border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                   style={{ borderLeftColor: 'transparent', borderRightColor: 'transparent' }}
                 />
-                {/* Ring 2 (Y-Axis Spin) */}
                 <motion.div
-                  initial={{ opacity: 0, rotateY: 70, rotateZ: 90, scale: 0.8 }}
-                  animate={{ opacity: 0.6, rotateY: 70, rotateZ: -270, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.3 } }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                  animate={{ rotateY: [0, 360], rotateZ: [90, 270] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                   className="absolute inset-4 rounded-full border-[1px] border-white/30"
                   style={{ borderTopColor: 'transparent', borderBottomColor: 'transparent' }}
                 />
-              </>
+                <motion.div
+                  animate={{ rotateX: [360, 0], rotateY: [360, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-8 rounded-full border-[1px] border-white/20 border-dotted"
+                />
+              </motion.div>
             )}
           </AnimatePresence>
       </div>
@@ -103,53 +108,51 @@ const RealisticOrb: React.FC<RealisticOrbProps> = ({ state, emotion, onClick }) 
             boxShadow: `0 0 20px ${palette.glow}40, inset 0 0 20px ${palette.glow}40`
         }}
         animate={{
-            scale: isSpeaking ? [1, 1.05, 1] : isProcessing ? 0.9 : 1, // Constrict on thought (focus)
-            borderColor: isProcessing ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)"
+            scale: isSpeaking ? [1, 1.05, 1] : isProcessing ? 0.85 : 1, // Significant constriction on thought (focus)
+            borderColor: isProcessing ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.1)"
         }}
         transition={{
             scale: { type: "spring", stiffness: 300, damping: 20 },
             borderColor: { duration: 0.3 }
         }}
       >
-          {/* Internal Nebula/Plasma - Accelerates during thought */}
           <motion.div
             className="absolute inset-[-100%]"
             style={{
                 background: `conic-gradient(from 0deg, transparent, ${palette.nebula}, transparent, ${palette.glow}, transparent)`,
                 filter: 'blur(30px)',
-                opacity: 0.8
+                opacity: 0.9
             }}
             animate={{ 
-                rotate: 360 
+                rotate: 360,
+                scale: isProcessing ? [1, 1.2, 1] : 1
             }}
             transition={{ 
-                duration: isProcessing ? 0.5 : 20, // MASSIVE acceleration during thinking
-                repeat: Infinity, 
-                ease: "linear" 
+                rotate: { duration: isProcessing ? 0.8 : 20, repeat: Infinity, ease: "linear" },
+                scale: { duration: 1, repeat: Infinity, repeatType: "mirror" }
             }}
           />
 
-          {/* Synaptic Firing (Strobe Effect) */}
           <AnimatePresence>
             {isProcessing && (
                 <motion.div 
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 0.4, 0] }}
+                    animate={{ opacity: [0, 0.5, 0] }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 0.1 }}
-                    className="absolute inset-0 bg-white mix-blend-overlay"
+                    transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 0.1, ease: "easeInOut" }}
+                    className="absolute inset-0 bg-indigo-500 mix-blend-color-dodge"
                 />
             )}
           </AnimatePresence>
           
-          {/* Organic Noise Texture */}
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30 mix-blend-overlay" />
           
-          {/* Specular Highlight (The 'Eye' Glint) */}
-          <div className="absolute top-[20%] left-[25%] w-[15%] h-[10%] bg-white blur-[4px] rounded-[100%] opacity-80" />
+          <motion.div 
+            animate={{ opacity: isProcessing ? 0.4 : 0.8 }}
+            className="absolute top-[20%] left-[25%] w-[15%] h-[10%] bg-white blur-[4px] rounded-[100%]" 
+          />
       </motion.div>
       
-      {/* 4. Surface Shine */}
       <div className="absolute inset-0 rounded-full ring-1 ring-white/10 z-20 pointer-events-none"></div>
     </motion.div>
   );
@@ -244,6 +247,7 @@ export const AgentHUD: React.FC = () => {
     isHistoryOpen,
     isAudioPlaying,
     isLocked,
+    lastEvent, 
     toggleHistory,
     handleInteraction,
     retryLastInteraction, 
@@ -256,54 +260,91 @@ export const AgentHUD: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcripts, setTranscripts] = useState<ChatMessage[]>([]);
   const lastProcessedId = useRef<string | null>(null);
+  
+  // AssemblyAI Client Ref
+  const assemblyClientRef = useRef<AssemblyAIClient | null>(null);
+
+  useEffect(() => {
+      // Cleanup on unmount
+      return () => {
+          assemblyClientRef.current?.stop();
+      };
+  }, []);
+
+  // --- CONTEXT AWARE THINKING TEXT ---
+  const thinkingText = useMemo(() => {
+    if (!lastEvent) return "Processing...";
+    const { event, payload } = lastEvent;
+
+    if (event === 'init') return "Initializing Core...";
+    if (event === 'user_message') return "Analyzing Intent...";
+    
+    if (event === 'cta_clicked') {
+      if (payload?.source === 'navbar') return "Checking Availability...";
+      if (payload?.source === 'hero_primary') return "Analyzing Infrastructure...";
+      if (payload?.source === 'pricing') return "Calculating Specs...";
+      if (payload?.source === 'final_cta') return "Securing Slot...";
+    }
+
+    if (event === 'path_selected') {
+        if (payload?.path === 'book_call') return "Generating Link...";
+        if (payload?.path === 'activate') return "Initiating Activation...";
+    }
+
+    return "Thinking...";
+  }, [lastEvent]);
 
   // --- TRANSCRIPT MANAGER ---
-  // Listens for new messages and adds them as floating "toasts" that expire
   useEffect(() => {
     if (chatHistory.length === 0) return;
     
     const latestMsg = chatHistory[chatHistory.length - 1];
     if (latestMsg.id === lastProcessedId.current) return;
     
-    // Only process messages created in the last second (prevents flooding on hydration)
     const isRecent = Date.now() - latestMsg.timestamp < 1000;
     
     if (isRecent) {
         lastProcessedId.current = latestMsg.id;
-        
-        // Add to toast queue
-        setTranscripts(prev => [...prev.slice(-2), latestMsg]); // Keep max 3 at a time visually
+        setTranscripts(prev => [...prev.slice(-2), latestMsg]); 
 
-        // Schedule removal
         setTimeout(() => {
             setTranscripts(prev => prev.filter(t => t.id !== latestMsg.id));
-        }, 6000); // 6s visibility
+        }, 6000); 
     }
   }, [chatHistory]);
 
-  const toggleVoice = () => {
+  const toggleVoice = async () => {
     if (isListening) {
+        assemblyClientRef.current?.stop();
         setIsListening(false);
         setSystemState('idle');
-        return;
-    }
-    if (isAudioPlaying) interruptAudio();
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return alert("Voice input requires Chrome/Edge.");
-    
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.lang = 'en-US';
-    recognition.onstart = () => { setIsListening(true); setSystemState('listening'); };
-    recognition.onend = () => { setIsListening(false); if (useSystemStore.getState().systemState === 'listening') setSystemState('idle'); };
-    recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
-            addChatMessage('user', transcript);
-            handleInteraction('user_message', { text: transcript });
+    } else {
+        if (isAudioPlaying) interruptAudio();
+
+        if (!assemblyClientRef.current) {
+            assemblyClientRef.current = new AssemblyAIClient(
+                (text, isFinal) => {
+                    if (isFinal && text.trim()) {
+                        addChatMessage('user', text);
+                        handleInteraction('user_message', { text });
+                        // We keep the mic open for speech-to-speech continuity
+                    }
+                }
+            );
         }
-    };
-    recognition.start();
+        
+        setIsListening(true);
+        setSystemState('listening');
+        
+        try {
+            await assemblyClientRef.current.start();
+        } catch (e) {
+            console.error("Mic error", e);
+            setIsListening(false);
+            setSystemState('idle');
+            alert("Could not access microphone. Please check permissions.");
+        }
+    }
   };
 
   const handleSend = (e: React.FormEvent) => {
@@ -316,14 +357,10 @@ export const AgentHUD: React.FC = () => {
   };
 
   const handleOrbClick = () => {
-      // Primary Action: Toggle History
       toggleHistory(!isHistoryOpen);
-      
-      // Optional: Init if idle and history is empty (first interaction)
       if (systemState === 'idle' && chatHistory.length === 0) {
           handleInteraction('init');
       }
-      
       if (isAudioPlaying) interruptAudio();
   };
 
@@ -373,12 +410,22 @@ export const AgentHUD: React.FC = () => {
                  <RealisticOrb state={systemState} emotion={orbEmotion} onClick={handleOrbClick} />
                  
                  {/* Thinking Badge */}
-                 {systemState === 'processing' && (
-                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-[9px] font-bold tracking-[0.2em] text-primary/80 uppercase whitespace-nowrap bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-primary/20 shadow-[0_0_15px_rgba(0,217,255,0.2)] animate-pulse">
-                         <Loader2 size={10} className="animate-spin" />
-                         Thinking...
-                     </div>
-                 )}
+                 <AnimatePresence>
+                   {(systemState === 'processing' || systemState === 'thinking') && (
+                       <motion.div 
+                         initial={{ opacity: 0, y: 10 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         exit={{ opacity: 0, y: 5 }}
+                         className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 text-[9px] font-bold tracking-[0.15em] text-primary uppercase whitespace-nowrap bg-dark-900/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-primary/30 shadow-[0_0_20px_rgba(0,217,255,0.15)] z-50"
+                       >
+                           <BrainCircuit size={12} className="animate-pulse" />
+                           <span className="bg-gradient-to-r from-primary to-white bg-clip-text text-transparent animate-pulse">
+                              {thinkingText}
+                           </span>
+                       </motion.div>
+                   )}
+                 </AnimatePresence>
+
                  {/* Error Badge */}
                  {systemState === 'fallback' && (
                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-[9px] font-bold tracking-[0.2em] text-red-500 uppercase whitespace-nowrap bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.3)]">

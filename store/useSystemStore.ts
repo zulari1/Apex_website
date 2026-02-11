@@ -199,18 +199,18 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
     console.log(`[ATLAS] Action: ${event}`, payload);
 
     // 3. FAILSAFE TIMER
-    // If backend takes > 4s (per fallback rule), trigger fallback UI
+    // Extended to 60s to allow for cold starts/long LLM generations
     const fallbackTimer = setTimeout(() => {
         const currentState = get().systemState;
         if (currentState === 'processing') {
-            console.warn('[ATLAS] Failsafe triggered: Backend too slow');
+            console.warn('[ATLAS] Failsafe triggered: Request timed out');
             set({ 
                 systemState: 'fallback', 
                 orbEmotion: 'concerned',
                 isLocked: false
             });
         }
-    }, 4000); // 4 seconds timeout
+    }, 60000); 
 
     try {
       // 4. API CALL

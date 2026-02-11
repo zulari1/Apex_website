@@ -14,6 +14,7 @@ import { FAQ } from './components/FAQ';
 import { FinalCTA } from './components/FinalCTA';
 import { Footer } from './components/Footer';
 import { AgentHUD } from './components/AgentHUD';
+import { LiveDemo } from './components/LiveDemo';
 
 const App: React.FC = () => {
   const { setSystemState } = useSystemStore();
@@ -35,6 +36,8 @@ const App: React.FC = () => {
 
       <main className="relative z-10 w-full">
         <Hero />
+        {/* Live Product Experience - Placed early for maximum engagement */}
+        <LiveDemo />
         <div className="relative z-30 bg-dark-900">
             <Problem />
             <Solution />

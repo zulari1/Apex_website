@@ -33,6 +33,10 @@ import { useSystemStore } from '../store/useSystemStore';
  * 7. INTENT_HUD_ACTION
  *    - User Intent: "I have selected the path: '{Path Name}'. Proceed with next steps."
  *    - Trigger: Buttons inside the Agent HUD (Book Call / Activate).
+ * 
+ * 8. INTENT_AFTER_DEMO
+ *    - User Intent: "I have just experienced the Live Demo and seen the generated emails. I am highly interested."
+ *    - Trigger: "I Want This Running For My Business" button in LiveDemo component.
  */
 
 const ATLAS_WEBHOOK = 'https://apex-dev.app.n8n.cloud/webhook/atlas';
@@ -139,7 +143,19 @@ export const AgentService = {
         };
     }
 
-    // 4. INITIALIZATION
+    // 4. LIVE DEMO CONVERSION
+    if (event === 'live_demo_cta_clicked') {
+        return {
+            event_type: 'INTENT_AFTER_DEMO',
+            user_intent: "I have just tested the Live Demo and seen the AI generated emails. I want to proceed with this solution for my business.",
+            metadata: { 
+                email_provided: payload?.email,
+                url_analyzed: payload?.url
+            }
+        };
+    }
+
+    // 5. INITIALIZATION
     if (event === 'init') {
         return {
             event_type: 'SESSION_INIT',
@@ -176,9 +192,9 @@ export const AgentService = {
     console.log('[ATLAS SERVICE] Transmitting Neural Packet:', requestPayload);
 
     try {
-      // 1. Attempt Real Webhook with extended timeout (12s)
+      // 1. Attempt Real Webhook with extended timeout (60s)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); 
+      const timeoutId = setTimeout(() => controller.abort(), 60000); 
 
       const response = await fetch(ATLAS_WEBHOOK, {
           method: 'POST',

@@ -2,9 +2,7 @@
 // AssemblyAI Universal Streaming Service
 // Handles real-time audio capture, PCM16 encoding, and WebSocket communication
 
-// NOTE: In a production environment, use a temporary token generated from your backend.
-// For this frontend-only build, we expect an API key.
-const ASSEMBLY_API_KEY = '5a6878477484432098d62657e28b26f5'; // Using a placeholder/provided key structure
+const ASSEMBLY_API_KEY = 'b48d02f9d202469dbf7d4c77402bb86e';
 
 export class AssemblyAIClient {
   private socket: WebSocket | null = null;
@@ -30,28 +28,26 @@ export class AssemblyAIClient {
           sampleRate: 16000,
           channelCount: 1,
           echoCancellation: true,
-          noiseSuppression: true
+          noiseSuppression: true,
+          autoGainControl: true
         } 
       });
 
-      // 2. Initialize WebSocket
-      // Note: sample_rate param helps the API optimize for the input
-      this.socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${ASSEMBLY_API_KEY}`);
+      // 2. Initialize WebSocket with optimized silence detection parameters
+      // 1.2s max silence triggers end of turn
+      const params = new URLSearchParams({
+        sample_rate: '16000',
+        token: ASSEMBLY_API_KEY,
+        end_of_turn_confidence_threshold: '0.6',
+        min_end_of_turn_silence_when_confident: '500',
+        max_turn_silence: '1200',
+        word_boost: '["Apex", "Revenue", "SDR", "ROI", "Lead", "Gen", "Pipeline"]'
+      });
+
+      this.socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?${params.toString()}`);
 
       this.socket.onopen = () => {
         console.log('[ATLAS] Voice Uplink Established (AssemblyAI)');
-        
-        // 3. Send Configuration
-        // Configures silence detection (~1.2s) and filler removal
-        this.socket?.send(JSON.stringify({
-          type: 'UpdateConfiguration',
-          end_of_turn_confidence_threshold: 0.5,
-          min_end_of_turn_silence_when_confident: 500,
-          max_turn_silence: 1200, // 1.2s silence detection triggers end of turn
-          filter_removal: ['um', 'uh', 'hmm', 'mhm', 'uh-huh', 'ah', 'huh', 'hm', 'm'],
-          word_boost: ['Apex', 'Revenue', 'SDR', 'ROI', 'Lead', 'Gen', 'Pipeline']
-        }));
-
         this.startAudioProcessing();
       };
 
@@ -59,8 +55,7 @@ export class AssemblyAIClient {
         const data = JSON.parse(event.data);
         
         // Handle Final Turns (Cleaned & Formatted)
-        // We use 'Turn' messages or 'FinalTranscript' depending on API version
-        if (data.message_type === 'FinalTranscript' || (data.end_of_turn && data.text)) {
+        if (data.message_type === 'FinalTranscript') {
            if (data.text) {
              this.onTranscriptCallback(data.text, true);
            }
@@ -110,7 +105,6 @@ export class AssemblyAIClient {
           sum += inputData[i] * inputData[i];
         }
         const rms = Math.sqrt(sum / inputData.length);
-        // Normalize roughly to 0-1 range for UI
         const normalizedLevel = Math.min(1, rms * 5); 
         this.onAudioLevelCallback(normalizedLevel);
       }
@@ -138,7 +132,6 @@ export class AssemblyAIClient {
 
   stop() {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      // Send optional terminate message if API requires, or just close
       this.socket.send(JSON.stringify({ terminate_session: true }));
       this.socket.close();
     }
